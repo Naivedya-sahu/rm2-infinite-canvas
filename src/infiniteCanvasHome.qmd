@@ -1,0 +1,50 @@
+VERSION 3.28.0.172
+
+; Native sidebar Return-to-start button for infinite-canvas.
+; SPDX-License-Identifier: MIT
+; Uses existing native resetViewport() only. No ink or pan-bound changes.
+
+AFFECT /qt/qml/xofm/libs/toolbar/qml/Toolbar.qml
+    TRAVERSE FocusScope
+        LOCATE AFTER ALL
+        INSERT {
+            property bool canvasHomeAvailable: false
+            signal canvasHomeSelected()
+        }
+        REPLACE showableToolsCount WITH {
+            readonly property int showableToolsCount: Math.floor(Math.max(innerWidth, innerHeight) / ArkTokens.Style.variable.controlsHeight.large) - 1 - (root.canvasHomeAvailable ? 1 : 0)
+        }
+        TRAVERSE Item#toolbar > GridLayout#toolLayout
+            LOCATE BEFORE Repeater#secondaryTools
+            INSERT {
+                ArkControls.ToolButton {
+                    id: canvasHomeButton
+                    objectName: "infiniteCanvasHome"
+                    visible: root.expanded && root.canvasHomeAvailable
+                    enabled: !root.dragging
+                    focusPolicy: Qt.NoFocus
+                    iconSource: "qrc:/qml/images/house.svg"
+                    onClicked: root.canvasHomeSelected()
+                    PenInputBlocker {
+                        anchors.fill: parent
+                        enabled: true
+                        manager: root.penInput.surfaceManager
+                    }
+                }
+            }
+        END TRAVERSE
+    END TRAVERSE
+END AFFECT
+
+AFFECT /qml/device/view/documentview/DocumentView.qml
+    TRAVERSE FocusScope > Item#_uiContainer > Toolbar#toolbar
+        LOCATE AFTER ALL
+        INSERT {
+            canvasHomeAvailable: sceneView.nativeInfinitePage && sceneView.status === SceneView.Active
+            onCanvasHomeSelected: {
+                sceneView.resetViewport();
+                sceneView.updateScrollbars();
+            }
+        }
+    END TRAVERSE
+END AFFECT

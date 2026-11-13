@@ -1,0 +1,17 @@
+# Owner-local, never publish: reMarkable editor binary and extracted QML
+# (proprietary), notebook backups, device logs/screenshots, change ledger,
+# local QMLDiff toolchain and test outputs.
+.local/
+
+# Third-party sources downloaded for review; linked from README instead.
+upstream/
+
+# Build output; release APKs are attached to GitHub releases.
+dist/
+archive/
+
+# Private project card for the owner's vault.
+PROJECT.md
+
+__pycache__/
+*.pyc

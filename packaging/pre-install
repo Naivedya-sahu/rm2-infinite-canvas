@@ -1,0 +1,7 @@
+#!/bin/sh
+# Read-only, fail-closed compatibility check. Never restart xochitl here.
+set -eu
+[ "$(uname -m)" = armv7l ] || { printf '%s\n' 'infinite-canvas: requires ARM32 reMarkable 2' >&2; exit 1; }
+[ "$(cat /sys/devices/soc0/machine)" = 'reMarkable 2.0' ] || exit 1
+grep -qx 'IMG_VERSION="3.28.0.172"' /etc/os-release || { printf '%s\n' 'infinite-canvas: unreviewed firmware' >&2; exit 1; }
+printf '%s\n' '071d85beef3ef2d4cc0e11002140b27b82a2cc04a2ed740a5669f591069b77df  /usr/bin/xochitl' | sha256sum -c -

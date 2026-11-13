@@ -1,0 +1,105 @@
+VERSION 3.28.0.172
+
+; infiniteCanvas.qmd - reMarkable 2 native horizontal infinite canvas
+;
+; Extends the stock vertically-infinite handwritten notebook page horizontally,
+; inside the native xochitl editor (native pens, strokes, save, undo, render).
+; Applies only when document.fileType === Document.Notebook && notePage.
+; PDFs, ebooks and notebook pages inside PDFs keep stock paged behaviour.
+; Disable/uninstall this file to restore stock behaviour; no file conversion.
+;
+; Firmware gate: VERSION 3.28.0.172 only. Every edit anchors on the exact stock
+; expression it changes, so changed firmware fails instead of half-applying.
+;
+; Port of the canvas changes of bahadrdsr/remarkable-infinite-horizontal
+; (tools/build_native_patch.py: DeviceSceneView.qml, DocumentView.qml) to a
+; composable QMLDiff patch, without a native settings C++ singleton, settings
+; UI or service wrapper. Unlike upstream, page swipes, swipe-to-add-page and
+; the new-page button stay stock: one finger turns pages, two fingers pan.
+;
+; Upstream notice:
+;
+; MIT License
+;
+; Copyright (c) 2026 bahadrdsr
+;
+; Permission is hereby granted, free of charge, to any person obtaining a copy
+; of this software and associated documentation files (the "Software"), to deal
+; in the Software without restriction, including without limitation the rights
+; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+; copies of the Software, and to permit persons to whom the Software is
+; furnished to do so, subject to the following conditions:
+;
+; The above copyright notice and this permission notice shall be included in all
+; copies or substantial portions of the Software.
+;
+; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+; SOFTWARE.
+
+AFFECT /qml/device/view/documentview/DeviceSceneView.qml
+    TRAVERSE FocusScope
+        ; Single switch read by the other two resources.
+        LOCATE AFTER document
+        INSERT {
+            readonly property bool nativeInfinitePage: !!document && document.fileType === Document.Notebook && notePage
+        }
+
+        ; Let the native viewport pan beyond the paper width.
+        TRAVERSE Component#sceneViewComponent > SceneView#view
+            REBUILD limitScrollingToPaper
+                LOCATE BEFORE { true }
+                REMOVE LOCATED
+                INSERT { !root.nativeInfinitePage }
+            END REBUILD
+        END TRAVERSE
+
+        ; Hide the four dithered outside-paper overlays.
+        TRAVERSE Item > Item#uiOverlay > Rectangle#leftOverlay[.size=root.leftViewportEdge]
+            REDEFINE size
+                LOCATE BEFORE ALL
+                REMOVE UNTIL END
+                INSERT { property real size: root.nativeInfinitePage ? 0 : root.leftViewportEdge }
+            END REDEFINE
+        END TRAVERSE
+        TRAVERSE Item > Item#uiOverlay > Rectangle#rightOverlay[.size=root.rightViewportEdge]
+            REDEFINE size
+                LOCATE BEFORE ALL
+                REMOVE UNTIL END
+                INSERT { property real size: root.nativeInfinitePage ? 0 : root.rightViewportEdge }
+            END REDEFINE
+        END TRAVERSE
+        TRAVERSE Item > Item#uiOverlay > Rectangle#topOverlay[.size=root.topViewportEdge]
+            REDEFINE size
+                LOCATE BEFORE ALL
+                REMOVE UNTIL END
+                INSERT { property real size: root.nativeInfinitePage ? 0 : root.topViewportEdge }
+            END REDEFINE
+        END TRAVERSE
+        TRAVERSE Item > Item#uiOverlay > Rectangle#bottomOverlay[.size=root.bottomViewportEdge]
+            REDEFINE size
+                LOCATE BEFORE ALL
+                REMOVE UNTIL END
+                INSERT { property real size: root.nativeInfinitePage ? 0 : root.bottomViewportEdge }
+            END REDEFINE
+        END TRAVERSE
+    END TRAVERSE
+END AFFECT
+
+AFFECT /qml/device/view/documentview/DocumentView.qml
+    TRAVERSE FocusScope
+        ; No horizontal snap back to the page column.
+        TRAVERSE DeviceSceneView#sceneView
+            REBUILD snapEnabled
+                LOCATE BEFORE { !adjustViewPopup.active }
+                REMOVE LOCATED
+                INSERT { !adjustViewPopup.active && !sceneView.nativeInfinitePage }
+            END REBUILD
+        END TRAVERSE
+
+    END TRAVERSE
+END AFFECT
