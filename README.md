@@ -28,17 +28,40 @@ Strict, because the patches edit exact editor internals. The package refuses to 
 
 ## Install
 
-1. Back up your notebooks (`/home/root/.local/share/remarkable/xochitl`).
-2. Download `infinite-canvas-0.1.2-r0.apk` from the Releases page and copy it to the tablet.
-3. Install the package. It is unsigned, so allow it for this one command only:
+The package is not in the Vellum catalog. You install the downloaded `.apk` file directly. Steps 1 and 3 are the same for both methods.
+
+**Before you start**
+
+- Back up your notebooks: reManager › System › Backup & Restore, or copy `/home/root/.local/share/remarkable/xochitl`.
+- Turn off automatic OS updates. A new OS version removes the patches; the package refuses to reinstall until a matching version is published.
+- From the [latest release](../../releases/latest), download `infinite-canvas-0.1.2-r0.apk` and `guarded-activation.sh`, and check the SHA-256 of the APK against the release notes.
+
+### Option A: reManager (desktop or mobile app)
+
+1. Connect [reManager](https://remanager.io) to your tablet (USB IP `10.11.99.1`; the password is in Settings › General › Help › Copyrights and licenses). Let it set up Vellum and install `qt-resource-rebuilder` from Discover if it is missing, and build the hashtable when asked.
+2. System › Tools › **File Browser** › Home (`/home/root`) › **Upload** both downloaded files.
+3. System › Tools › **Terminal**, then run:
    ```sh
-   /home/root/.vellum/bin/vellum add --allow-untrusted --no-network ./infinite-canvas-0.1.2-r0.apk
+   /home/root/.vellum/bin/vellum add --allow-untrusted --no-network /home/root/infinite-canvas-0.1.2-r0.apk
    ```
-4. Save your work, then restart the editor. The package never restarts it for you. Either restart it yourself (`systemctl restart xochitl`), or copy `packaging/guarded-activation.sh` to the tablet and run it. The helper waits ~30 s, and if the editor fails to start cleanly it moves both patches aside and restarts the editor without them:
-   ```sh
-   sh guarded-activation.sh /home/root/infinite-canvas-activation
-   cat /home/root/infinite-canvas-activation/result   # PASS or ROLLED_BACK
-   ```
+   `--allow-untrusted` is needed because the package is not signed by the Vellum repository. It applies to this command only.
+4. Save your work, then activate (see [Activate](#activate)). The mod then appears in reManager › Mods › **Installed**, where you can remove it later.
+
+### Option B: SSH with the Vellum CLI
+
+1. [Install Vellum](https://github.com/vellum-dev/vellum-cli) and run `vellum add qt-resource-rebuilder` if needed.
+2. Copy the files: `scp infinite-canvas-0.1.2-r0.apk guarded-activation.sh root@10.11.99.1:/home/root/`
+3. On the tablet: `/home/root/.vellum/bin/vellum add --allow-untrusted --no-network /home/root/infinite-canvas-0.1.2-r0.apk`
+4. Activate.
+
+If the tablet is not a reMarkable 2 on OS 3.28.0.172 with the stock editor, `vellum add` stops at the pre-install check and changes nothing.
+
+### Activate
+
+The package never restarts the editor itself. Use either method:
+
+- **Guarded (recommended):** `sh /home/root/guarded-activation.sh /home/root/infinite-canvas-activation`. The script restarts the editor, waits about 30 s, and prints `PASS`. If the editor did not start cleanly, it moves both patches aside, restarts the stock editor, and prints `ROLLED_BACK`. In that case the logs are in that folder; please open an issue and attach `startup.log`.
+- **Plain:** reManager › System › reMarkable UI › **Restart**, or `systemctl restart xochitl`.
 
 ## Use
 
@@ -47,6 +70,8 @@ Strict, because the patches edit exact editor internals. The package refuses to 
 - **House icon** (sidebar expanded, notebook pages only): back to the default position and zoom.
 
 ## Remove
+
+reManager › Mods › Installed › infinite-canvas › **Remove** › Apply, then restart the reMarkable UI. Or over SSH:
 
 ```sh
 /home/root/.vellum/bin/vellum del infinite-canvas
